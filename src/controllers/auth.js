@@ -3,7 +3,6 @@ const jwt = require("jsonwebtoken");
 const users = require("../models/User");
 
 require("dotenv").config();
-const salt = bcrypt.genSaltSync(10)
 
 function createAccessToken(user) {
     const payload = {
@@ -16,7 +15,7 @@ function createAccessToken(user) {
 
 
 const signup = (req, res) => {
-    let senhaCripto = bcrypt.hashSync(req.body.senha, salt)
+    let senhaCripto = bcrypt.hash(req.body.senha, 12)
 
     let objectSaved = {
         nome: req.body.nome,
@@ -39,33 +38,53 @@ const signup = (req, res) => {
 }
 
 
-const login = (req, res) => {
+const login = async(req, res) => {
     const email = req.body.email;
     const senha = req.body.senha;
 
-    const senhaCripto = bcrypt.hashSync(senha, salt)
 
-    users.findOne({email: email}, (err, user) => {
+    users.findOne({email: email}, async(err, user) => {
         if(err) {
-            res.status(500).send({message: `Nao foi possivel buscar o usuario`})
+            res.status(500).json({message: `Nao foi possivel buscar o usuario`})
         } else {
-            console.log("Logando: ", user)
-            console.log(senhaCripto)
-            if(user && senhaCripto === user.senha) {
-                const access_token = createAccessToken(user);
+            const senhaValida = await bcrypt.compare(senha, user.senha)
 
-                res.set("Authorization", access_token)
-                res.status(201).send({
+            if(!senhaValida){
+                res.status(500).json({message: "You don't have the credentials"})
+            } else {
+                const access_token = createAccessToken(user);
+                res.status(201).json({
                     user,
                     access_token
                 })
-            } else {
-                res.status(500).send({message: `Nao foi possivel realizar o login`})
             }
+
+            
         }
+
     })
 }
 
+const getUserbyId = (req, res) => {
+    const id = req.body._id;
+
+    users.findOne({_id: id}, (err, user) => {
+        if(err) {
+            res.status(500).send({message: "The user searched doesn't exist! " + err})
+        }
+
+        if(user){
+            res.status(200).json({
+                data: {
+                    user
+                }
+            })
+        }
+        
+    })
+
+    
+}
 
 const getUsers = (req, res) => {
     users.find((err, users) => {
@@ -74,4 +93,4 @@ const getUsers = (req, res) => {
 }
 
 
-module.exports = {signup, login, getUsers};
+module.exports = {signup, login, getUsers, getUserbyId};

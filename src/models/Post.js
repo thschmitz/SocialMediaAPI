@@ -5,8 +5,8 @@ const postSchema = new mongoose.Schema(
         title: {type: String, required:true},
         photoURL: {type: String, required:false},
         likes: {type: Number, required:true},
-        conteudo: {type: String, required:true, unique:true},
-        userId: {type:String, required:true, unique:true},
+        conteudo: {type: String, required:true, unique: true},
+        userId: {type:String, required:true},
     },
     {
         versionKey: false,
