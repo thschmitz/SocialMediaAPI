@@ -1,15 +1,33 @@
 const bcrypt = require("bcrypt");
-const crypt = require("crypto");
-
+const jwt = require("jsonwebtoken");
 const users = require("../models/User");
 
 require("dotenv").config();
+const salt = bcrypt.genSaltSync(10)
 
+function createAccessToken(user) {
+    const payload = {
+        id: user._id,
+    }
+
+    const token = jwt.sign(payload, process.env.CHAVE_JWT, {subject: `${user._id}`})
+    return token;
+}
 
 
 const signup = (req, res) => {
-    let user = new users(req.body);
-    console.log(req.body)
+    let senhaCripto = bcrypt.hashSync(req.body.senha, salt)
+
+    let objectSaved = {
+        nome: req.body.nome,
+        email: req.body.email,
+        senha: senhaCripto,
+        username: req.body.username,
+        image: req.body.image
+    }
+
+    let user = new users(objectSaved);
+    console.log(objectSaved)
 
     user.save((err) => {
         if(err) {
@@ -25,12 +43,16 @@ const login = (req, res) => {
     const email = req.body.email;
     const senha = req.body.senha;
 
-    users.findOne({senha: senha, email: email}, (err, user) => {
+    const senhaCripto = bcrypt.hashSync(senha, salt)
+
+    users.findOne({email: email}, (err, user) => {
         if(err) {
             res.status(500).send({message: `Nao foi possivel buscar o usuario`})
         } else {
-            if(user) {
-                const access_token = 0;
+            console.log("Logando: ", user)
+            console.log(senhaCripto)
+            if(user && senhaCripto === user.senha) {
+                const access_token = createAccessToken(user);
 
                 res.set("Authorization", access_token)
                 res.status(201).send({
